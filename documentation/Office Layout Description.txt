@@ -1,0 +1,138 @@
+# BossMan's Office Adventure: World & Character Specification
+
+This specification document contains all grid structures, character stats, interactive objects, and zone maps extracted from the office layout and character sheet. Feed this file directly into Claude Code or your Next.js game engine.
+
+---
+
+## 1. Character Profile: BossMan
+
+* **Name:** Sanchit Shekhar ("BossMan")
+* **Character ID:** `OFFICE_WORKER_01`
+* **Visual Appearance:** Voxel/pixel isometric style, short brown hair/balding top, black-rimmed glasses, blue/teal short-sleeved Hawaiian shirt with red floral print, dark trousers, dark shoes.
+* **Sprite Directions (8-Way Movement):**
+* North (N), South (S), East (E), West (W)
+* North-East (NE), South-East (SE), South-West (SW), North-West (NW)
+
+
+* **Base Stats:**
+* **Movement Speed:** 4.5 units/sec
+* **Health (HP):** 100 / 100
+* **Stamina:** 80 / 80
+* **Special Ability:** `COFFEE_BREAK` (Regenerates HP)
+
+
+* **Inventory Items:**
+1. `item_coffee_cup` (Heals HP / Triggers Coffee Break)
+2. `item_laptop` (Required for Desk interaction)
+3. `item_id_badge_1` (Access card)
+4. `item_id_badge_2` (Elevator/Door access card)
+
+
+
+---
+
+## 2. World Coordinates & Map Layout
+
+The map is structured on a normalized 2D grid matrix ($100 \times 50$ units), with **(0,0)** at the **Top-Left Corner** and **(100,50)** at the **Bottom-Right Corner**.
+
+```
+(0,0) -------------------------------------------------------- (100,0)
+|  [The Snug]  [Desk Banks North]             [Kitchen / Garden]   |
+|  [Kehoe's]   =============================  [O'Neills]           |
+|  [Shaw]      ||    CENTRAL CORE VOID    ||  [Dining Tables]      |
+|  [Grogan's]  =============================  [Ping Pong]          |
+|  [Whelan's]  [BossMan Desk] [Desk Banks South] [Brazen Head]    |
+(0,50) ------------------------------------------------------- (100,50)
+
+```
+
+### Core Colliders & Non-Walkable Zones
+
+* **Central Atrium Void:** $X: 24 \to 70$, $Y: 20 \to 30$ (Large central gray block)
+* **North Core Block (Lobby / Bathrooms / IT Room):** $X: 9 \to 32$, $Y: 9 \to 18$
+* **South Core Block (Bathrooms / Small Kitchen):** $X: 9 \to 21$, $Y: 32 \to 39$
+* **East Core Block (MDC CIRC / Utility Area):** $X: 75 \to 92$, $Y: 8 \to 21$
+
+---
+
+## 3. Primary Key Interactive Locations
+
+### Target 1: BossMan's Desk (BLUE MARKER)
+
+* **Location ID:** `loc_bossman_desk`
+* **Coordinates:** $X: 42$, $Y: 46$ (Bottom row of south desk banks, left-hand cluster, south-facing desk seat)
+* **Object Type:** Workstation (Desk, Monitor, Chair, Docking Station)
+* **Interaction Action:** `PRESS_E_TO_WORK`
+* **Trigger Event:** Open laptop, check emails, sync code repositories.
+
+### Target 2: BossMan's Unofficial Office — Whelan's (ORANGE MARKER)
+
+* **Location ID:** `loc_whelans_meeting_room`
+* **Coordinates:** $X: 11$, $Y: 46$ (Bottom-left corner meeting room)
+* **Object Type:** Enclosed Meeting Room (Contains orange round conference table & chairs)
+* **Interaction Action:** `PRESS_E_TO_HOST_MEETING`
+* **Trigger Event:** Triggers "Unofficial Boss Meeting", restores Stamina to 100%.
+
+---
+
+## 4. Secondary Interactive Points & Props
+
+| Zone Name | Coordinates | Object / Furniture | Interaction Type | Effect |
+| --- | --- | --- | --- | --- |
+| **Small Kitchen Area** | $X: 23, Y: 34$ | Coffee Machine / Counter | `INTERACT_COFFEE` | Restores HP to 100 via `COFFEE_BREAK` |
+| **Ping Pong Table** | $X: 86, Y: 46$ | Table Tennis Set | `PLAY_PING_PONG` | Boosts Stamina |
+| **Main Kitchen Area** | $X: 87, Y: 24$ | Kitchen Counters & Dining | `EAT_SNACK` | Restores Stamina |
+| **Reception Desk** | $X: 16, Y: 26$ | Curved Reception Desk | `TALK_TO_RECEPTION` | Unlocks Badge 2 |
+| **Johnnie Fox's** | $X: 6, Y: 46$ | Boardroom Table | `ENTER_ROOM` | Secondary Meeting Area |
+| **The Bernard Shaw** | $X: 5, Y: 26$ | Long Conference Table | `ENTER_ROOM` | Large Team Sync |
+
+---
+
+## 5. Complete Room Directory
+
+### West Wing (Left Wall, Top to Bottom)
+
+1. **The Snug** ($X: 5, Y: 3$) — Small quiet booth.
+2. **Toner's** ($X: 5, Y: 8$) — Small meeting pod.
+3. **Kehoe's** ($X: 5, Y: 15$) — Medium meeting room.
+4. **The Bernard Shaw** ($X: 5, Y: 26$) — Large boardroom.
+5. **Grogan's** ($X: 5, Y: 34$) — Medium meeting room.
+6. **Mary's** ($X: 5, Y: 39$) — Small meeting room.
+7. **Johnnie Fox's** ($X: 6, Y: 46$) — Executive meeting room.
+8. **Whelan's** ($X: 11, Y: 46$) — **BossMan's Unofficial Office (Orange Marker)**.
+
+### North Wing (Top Perimeter, Left to Right)
+
+1. **IT Room / Comms Room** ($X: 30, Y: 10$)
+2. **North Desk Clusters** ($X: 33 \to 72, Y: 2 \to 16$)
+3. **O'Donoghue's** ($X: 88, Y: 3$)
+4. **An Pocán** ($X: 95, Y: 3$)
+
+### East Wing (Right Perimeter, Top to Bottom)
+
+1. **The Garden** ($X: 95, Y: 10$)
+2. **O'Neills** ($X: 95, Y: 17$)
+3. **Main Kitchen & Dining Area** ($X: 85 \to 98, Y: 22 \to 35$)
+4. **Pantry & Hidden Ace Room** ($X: 85 \to 92, Y: 38 \to 42$)
+5. **The Brazen Head** ($X: 95, Y: 44$)
+
+### South Wing (Bottom Perimeter, Left to Right)
+
+1. **Whelan's & Johnnie Fox's** ($X: 5 \to 15, Y: 46$)
+2. **South Sofa Lounge** ($X: 20, Y: 46$)
+3. **South Desk Clusters** ($X: 40 \to 72, Y: 34 \to 47$) — **Contains BossMan's Desk (Blue Marker at $X:42, Y:46$)**
+4. **Breakout Seating & Ping Pong** ($X: 78 \to 88, Y: 46$)
+
+---
+
+## 6. Logic & Engine Integration Rules
+
+1. **Spawn Point:** Character spawns near Reception ($X: 16, Y: 26$) facing South ($S$).
+2. **Core Quest Line:**
+* Step 1: Walk to **BossMan's Desk** ($X: 42, Y: 46$). Press `E` to grab Laptop.
+* Step 2: Walk to **Small Kitchen Area** ($X: 23, Y: 34$). Trigger `COFFEE_BREAK` to restore HP.
+* Step 3: Walk to **Whelan's Unofficial Office** ($X: 11, Y: 46$). Press `E` to start the team demo meeting.
+
+
+3. **Movement Handling:**
+* Smooth 2D grid/pixel collision using bounding boxes around all core walls, meeting room partitions, and desk rows.
