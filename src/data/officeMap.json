@@ -1155,15 +1155,15 @@
       "y": 20,
       "type": "meetingRoom",
       "variant": "other",
-      "message": "This isn't my office!"
+      "message": "This isn't MY office, this is The Snug!"
     },
     {
-      "id": "tonics",
+      "id": "toners",
       "x": 5,
       "y": 5,
       "type": "meetingRoom",
       "variant": "other",
-      "message": "This isn't my office!"
+      "message": "This isn't MY office, this is Toners!"
     },
     {
       "id": "the-bernard-shaw",
@@ -1171,15 +1171,15 @@
       "y": 8,
       "type": "meetingRoom",
       "variant": "other",
-      "message": "This isn't my office!"
+      "message": "This isn't MY office, this is The Bernard Shaw!"
     },
     {
-      "id": "crogans",
+      "id": "grogans",
       "x": 5,
       "y": 12,
       "type": "meetingRoom",
       "variant": "other",
-      "message": "This isn't my office!"
+      "message": "This isn't MY office, this is Grogans!"
     },
     {
       "id": "marys",
@@ -1187,7 +1187,7 @@
       "y": 15,
       "type": "meetingRoom",
       "variant": "other",
-      "message": "This isn't my office!"
+      "message": "This isn't MY office, this is Marys!"
     },
     {
       "id": "johnnie-foxs",
@@ -1195,7 +1195,7 @@
       "y": 18,
       "type": "meetingRoom",
       "variant": "other",
-      "message": "This isn't my office!"
+      "message": "This isn't MY office, this is Johnnie Foxes!"
     },
     {
       "id": "whelans",
@@ -1203,7 +1203,7 @@
       "y": 20,
       "type": "meetingRoom",
       "variant": "home",
-      "message": "Oh, I found my office!"
+      "message": "Oh, I found my office! Yippee"
     },
     {
       "id": "odonoghues",
@@ -1211,7 +1211,7 @@
       "y": 3,
       "type": "meetingRoom",
       "variant": "other",
-      "message": "This isn't my office!"
+      "message": "This isn't MY office, this is O'Donoghues!"
     },
     {
       "id": "an-poitin",
@@ -1219,15 +1219,15 @@
       "y": 3,
       "type": "meetingRoom",
       "variant": "other",
-      "message": "This isn't my office!"
+      "message": "This isn't My office, this An Poitin!"
     },
     {
-      "id": "the-garden",
+      "id": "the-camden",
       "x": 36,
       "y": 5,
       "type": "meetingRoom",
       "variant": "other",
-      "message": "This isn't my office!"
+      "message": "This isn't MY office, this is Kevins!"
     },
     {
       "id": "oneills",
@@ -1235,7 +1235,7 @@
       "y": 9,
       "type": "meetingRoom",
       "variant": "other",
-      "message": "This isn't my office!"
+      "message": "This isn't MY office, this is O'Neills!"
     },
     {
       "id": "the-brazen-head",
@@ -1243,7 +1243,7 @@
       "y": 18,
       "type": "meetingRoom",
       "variant": "other",
-      "message": "This isn't my office!"
+      "message": "This isn't MY office, this is the Brazen Head!"
     },
     {
       "id": "kitchen-main",
@@ -1257,7 +1257,7 @@
       "x": 11,
       "y": 16,
       "type": "kitchen",
-      "message": "Hey this is close to my office"
+      "message": "Ooh the small kitchen, Hey this is close to my office"
     },
     {
       "id": "bossmans-desk",
@@ -1265,21 +1265,21 @@
       "y": 22,
       "type": "desk",
       "variant": "personal",
-      "message": "Hey that's my bag and stuff, but this isn't my office!"
+      "message": "Hey that's my bag and stuff, but this isn't MY office!"
     },
     {
       "id": "npc-01",
       "x": 13,
       "y": 4,
       "type": "npc",
-      "message": "Is your office free yet?"
+      "message": "Hi BossMan, can we use Whelans now, I mean your office?"
     },
     {
       "id": "npc-02",
       "x": 28,
       "y": 14,
       "type": "npc",
-      "message": "Is your office free yet?"
+      "message": "Hi BossMan, can we use Whelans now, I mean your office?"
     }
   ],
   "obstacleTypes": [
