@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BossMan Office Map Editor</title>
+<style>
+  :root {
+    --bg: #1e1e26;
+    --panel: #262632;
+    --panel-alt: #2e2e3c;
+    --border: #3a3a4a;
+    --text: #e8e8f0;
+    --text-dim: #9a9aab;
+    --accent: #5da3ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  h1 { font-size: 15px; margin: 0 0 8px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin: 16px 0 6px; }
+  button {
+    background: var(--panel-alt);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #10131a; font-weight: 600; border-color: var(--accent); }
+  button.danger { border-color: #c0455a; color: #ff8a9a; }
+  input[type=text], textarea, select {
+    width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 7px;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 50px; }
+  label { display: block; font-size: 11px; color: var(--text-dim); margin: 6px 0 2px; }
+
+  #left, #right {
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 12px;
+    overflow-y: auto;
+  }
+  #right { border-right: none; border-left: 1px solid var(--border); }
+  #center {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  #canvasWrap { position: relative; }
+  canvas { display: block; image-rendering: pixelated; cursor: crosshair; border: 1px solid var(--border); }
+
+  .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+  .palette-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .palette-item.active { border-color: var(--accent); background: var(--panel-alt); }
+  .swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.2); }
+
+  .zone-list-item {
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .zone-list-item.active { border-color: var(--accent); background: var(--panel-alt); }
+  .zone-list-item .zid { font-weight: 600; }
+  .zone-list-item .zmeta { color: var(--text-dim); }
+
+  .row { display: flex; gap: 6px; }
+  .row > * { flex: 1; }
+
+  #fileStatus { font-size: 11px; color: var(--text-dim); margin-top: 6px; word-break: break-all; }
+  .hint { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+  #jsonPaste { margin-top: 8px; }
+  .section-divider { border-top: 1px solid var(--border); margin: 14px 0; }
+</style>
+</head>
+<body>
+
+<div id="left">
+  <h1>Map Editor</h1>
+
+  <h2>Load Map</h2>
+  <input type="file" id="fileInput" accept="application/json">
+  <textarea id="jsonPaste" placeholder="...or paste officeMap.json text here"></textarea>
+  <div class="row" style="margin-top:6px;">
+    <button id="loadPasteBtn">Load from paste</button>
+  </div>
+  <div id="fileStatus">No map loaded.</div>
+
+  <div class="section-divider"></div>
+
+  <h2>Tile Palette</h2>
+  <div class="palette-grid" id="paletteGrid"></div>
+  <div class="row" style="margin-top:8px;">
+    <input type="text" id="newTileName" placeholder="custom tile name">
+    <button id="addTileBtn">Add</button>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <h2>Mode</h2>
+  <div class="row">
+    <button id="modePaint" class="primary">Paint tiles</button>
+    <button id="modeMove">Move markers</button>
+  </div>
+  <p class="hint">Paint mode: click/drag on the grid to stamp the selected tile.<br>Move mode: drag zone or start markers to a new cell.</p>
+</div>
+
+<div id="center">
+  <div id="canvasWrap">
+    <canvas id="gridCanvas"></canvas>
+  </div>
+</div>
+
+<div id="right">
+  <h1>Zones &amp; Start</h1>
+
+  <h2>Start Position</h2>
+  <div class="row">
+    <div>
+      <label>X</label>
+      <input type="text" id="startX">
+    </div>
+    <div>
+      <label>Y</label>
+      <input type="text" id="startY">
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <h2>Interaction Zones</h2>
+  <button id="addZoneBtn" style="width:100%; margin-bottom:8px;">+ Add New Interaction Zone</button>
+  <div id="zoneList"></div>
+
+  <div id="zoneEditor" style="display:none;">
+    <div class="section-divider"></div>
+    <h2>Edit Zone</h2>
+    <label>id</label>
+    <input type="text" id="zEditId">
+    <label>type</label>
+    <input type="text" id="zEditType">
+    <label>variant</label>
+    <input type="text" id="zEditVariant">
+    <label>message</label>
+    <textarea id="zEditMessage"></textarea>
+    <label>x</label>
+    <input type="text" id="zEditX">
+    <label>y</label>
+    <input type="text" id="zEditY">
+    <div class="row" style="margin-top:8px;">
+      <button id="deleteZoneBtn" class="danger">Delete</button>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+  <h2>Export</h2>
+  <div class="row">
+    <button id="exportDownloadBtn" class="primary">Download JSON</button>
+  </div>
+  <div class="row" style="margin-top:6px;">
+    <button id="exportCopyBtn">Copy to clipboard</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------
+  let mapData = null;       // { width, height, tileSize, grid, interactionZones, obstacleTypes, startPosition }
+  const CELL = 20;           // on-screen pixel size per tile (independent of tileSize in JSON)
+  let mode = 'paint';         // 'paint' | 'move'
+  let selectedTile = 'floor';
+  let selectedZoneId = null;
+  let isPainting = false;
+  let dragTarget = null;     // { kind: 'zone'|'start', zone? }
+
+  const TILE_COLORS = {
+    wall: '#4a4a58',
+    floor: '#e0d8c8',
+    desk: '#8a6a4a',
+    tree: '#3f7a4a',
+    pingPongTable: '#4477bb',
+    loungeFurniture: '#b06a9a'
+  };
+  const FALLBACK_PALETTE = ['#c9784a', '#4ac9b0', '#c94a7a', '#9ac94a', '#c9c14a', '#7a4ac9'];
+  let fallbackIdx = 0;
+  function colorFor(tileType) {
+    if (TILE_COLORS[tileType]) return TILE_COLORS[tileType];
+    const c = FALLBACK_PALETTE[fallbackIdx % FALLBACK_PALETTE.length];
+    TILE_COLORS[tileType] = c;
+    fallbackIdx++;
+    return c;
+  }
+
+  const ZONE_COLOR = '#ff3b8f';
+  const START_COLOR = '#ffd93b';
+
+  // ---------------------------------------------------------------------
+  // DOM refs
+  // ---------------------------------------------------------------------
+  const fileInput = document.getElementById('fileInput');
+  const jsonPaste = document.getElementById('jsonPaste');
+  const loadPasteBtn = document.getElementById('loadPasteBtn');
+  const fileStatus = document.getElementById('fileStatus');
+  const paletteGrid = document.getElementById('paletteGrid');
+  const newTileName = document.getElementById('newTileName');
+  const addTileBtn = document.getElementById('addTileBtn');
+  const modePaintBtn = document.getElementById('modePaint');
+  const modeMoveBtn = document.getElementById('modeMove');
+  const canvas = document.getElementById('gridCanvas');
+  const ctx = canvas.getContext('2d');
+  const startXInput = document.getElementById('startX');
+  const startYInput = document.getElementById('startY');
+  const zoneListEl = document.getElementById('zoneList');
+  const addZoneBtn = document.getElementById('addZoneBtn');
+  const zoneEditor = document.getElementById('zoneEditor');
+  const zEditId = document.getElementById('zEditId');
+  const zEditType = document.getElementById('zEditType');
+  const zEditVariant = document.getElementById('zEditVariant');
+  const zEditMessage = document.getElementById('zEditMessage');
+  const zEditX = document.getElementById('zEditX');
+  const zEditY = document.getElementById('zEditY');
+  const deleteZoneBtn = document.getElementById('deleteZoneBtn');
+  const exportDownloadBtn = document.getElementById('exportDownloadBtn');
+  const exportCopyBtn = document.getElementById('exportCopyBtn');
+
+  // ---------------------------------------------------------------------
+  // Loading
+  // ---------------------------------------------------------------------
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        loadMap(JSON.parse(reader.result), file.name);
+      } catch (err) {
+        alert('Could not parse JSON: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  loadPasteBtn.addEventListener('click', () => {
+    const text = jsonPaste.value.trim();
+    if (!text) return;
+    try {
+      loadMap(JSON.parse(text), 'pasted JSON');
+    } catch (err) {
+      alert('Could not parse JSON: ' + err.message);
+    }
+  });
+
+  function loadMap(data, sourceLabel) {
+    if (!data || !Array.isArray(data.grid) || typeof data.width !== 'number' || typeof data.height !== 'number') {
+      alert('JSON does not look like a valid office map (missing width/height/grid).');
+      return;
+    }
+    mapData = data;
+    if (!mapData.obstacleTypes) mapData.obstacleTypes = [];
+    if (!mapData.interactionZones) mapData.interactionZones = [];
+    if (!mapData.startPosition) mapData.startPosition = { x: 0, y: 0 };
+
+    // Seed known tile colors so palette is stable
+    mapData.obstacleTypes.forEach(colorFor);
+    colorFor('floor');
+
+    fileStatus.textContent = 'Loaded: ' + sourceLabel + ' (' + mapData.width + '×' + mapData.height + ')';
+    selectedZoneId = null;
+    buildPalette();
+    render();
+    renderZoneList();
+    renderZoneEditor();
+    renderStartInputs();
+  }
+
+  // ---------------------------------------------------------------------
+  // Palette
+  // ---------------------------------------------------------------------
+  function buildPalette() {
+    paletteGrid.innerHTML = '';
+    const baseTypes = ['floor'].concat(mapData.obstacleTypes.filter(t => t !== 'floor'));
+    baseTypes.forEach(tileType => {
+      const item = document.createElement('div');
+      item.className = 'palette-item' + (tileType === selectedTile ? ' active' : '');
+      item.dataset.tile = tileType;
+      const sw = document.createElement('div');
+      sw.className = 'swatch';
+      sw.style.background = colorFor(tileType);
+      const label = document.createElement('span');
+      label.textContent = tileType;
+      item.appendChild(sw);
+      item.appendChild(label);
+      item.addEventListener('click', () => {
+        selectedTile = tileType;
+        buildPalette();
+      });
+      paletteGrid.appendChild(item);
+    });
+  }
+
+  addTileBtn.addEventListener('click', () => {
+    const name = newTileName.value.trim();
+    if (!name || !mapData) return;
+    if (!mapData.obstacleTypes.includes(name) && name !== 'floor') {
+      mapData.obstacleTypes.push(name);
+    }
+    colorFor(name);
+    selectedTile = name;
+    newTileName.value = '';
+    buildPalette();
+  });
+
+  // ---------------------------------------------------------------------
+  // Mode toggle
+  // ---------------------------------------------------------------------
+  modePaintBtn.addEventListener('click', () => setMode('paint'));
+  modeMoveBtn.addEventListener('click', () => setMode('move'));
+  function setMode(m) {
+    mode = m;
+    modePaintBtn.classList.toggle('primary', mode === 'paint');
+    modeMoveBtn.classList.toggle('primary', mode === 'move');
+  }
+
+  // ---------------------------------------------------------------------
+  // Canvas rendering
+  // ---------------------------------------------------------------------
+  function render() {
+    if (!mapData) return;
+    canvas.width = mapData.width * CELL;
+    canvas.height = mapData.height * CELL;
+
+    for (let y = 0; y < mapData.height; y++) {
+      for (let x = 0; x < mapData.width; x++) {
+        const tile = mapData.grid[y][x];
+        ctx.fillStyle = colorFor(tile);
+        ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
+        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+        ctx.strokeRect(x * CELL, y * CELL, CELL, CELL);
+      }
+    }
+
+    // Interaction zones
+    mapData.interactionZones.forEach(zone => {
+      const isActive = zone.id === selectedZoneId;
+      const cx = zone.x * CELL + CELL / 2;
+      const cy = zone.y * CELL + CELL / 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, CELL / 2 - 2, 0, Math.PI * 2);
+      ctx.fillStyle = ZONE_COLOR;
+      ctx.globalAlpha = isActive ? 1 : 0.75;
+      ctx.fill();
+      ctx.lineWidth = isActive ? 3 : 1;
+      ctx.strokeStyle = isActive ? '#ffffff' : '#5a0026';
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    });
+
+    // Start position
+    if (mapData.startPosition) {
+      const sx = mapData.startPosition.x * CELL + CELL / 2;
+      const sy = mapData.startPosition.y * CELL + CELL / 2;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - CELL / 2 + 2);
+      ctx.lineTo(sx + CELL / 2 - 2, sy + CELL / 2 - 2);
+      ctx.lineTo(sx - CELL / 2 + 2, sy + CELL / 2 - 2);
+      ctx.closePath();
+      ctx.fillStyle = START_COLOR;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#5a4a00';
+      ctx.stroke();
+    }
+  }
+
+  function cellFromEvent(e) {
+    const rect = canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    const x = Math.floor(px / CELL);
+    const y = Math.floor(py / CELL);
+    return { x, y };
+  }
+
+  function findMarkerAt(x, y) {
+    if (mapData.startPosition && mapData.startPosition.x === x && mapData.startPosition.y === y) {
+      return { kind: 'start' };
+    }
+    const zone = mapData.interactionZones.find(z => z.x === x && z.y === y);
+    if (zone) return { kind: 'zone', zone };
+    return null;
+  }
+
+  function inBounds(x, y) {
+    return x >= 0 && y >= 0 && x < mapData.width && y < mapData.height;
+  }
+
+  function paintCell(x, y) {
+    if (!inBounds(x, y)) return;
+    mapData.grid[y][x] = selectedTile;
+    render();
+  }
+
+  canvas.addEventListener('mousedown', (e) => {
+    if (!mapData) return;
+    const { x, y } = cellFromEvent(e);
+    if (!inBounds(x, y)) return;
+
+    if (mode === 'paint') {
+      isPainting = true;
+      paintCell(x, y);
+    } else {
+      const marker = findMarkerAt(x, y);
+      if (marker) {
+        dragTarget = marker;
+        if (marker.kind === 'zone') {
+          selectedZoneId = marker.zone.id;
+          renderZoneList();
+          renderZoneEditor();
+        }
+      }
+    }
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!mapData) return;
+    if (mode === 'paint' && isPainting) {
+      const { x, y } = cellFromEvent(e);
+      paintCell(x, y);
+    } else if (mode === 'move' && dragTarget) {
+      const { x, y } = cellFromEvent(e);
+      if (!inBounds(x, y)) return;
+      if (dragTarget.kind === 'start') {
+        mapData.startPosition.x = x;
+        mapData.startPosition.y = y;
+        renderStartInputs();
+      } else {
+        dragTarget.zone.x = x;
+        dragTarget.zone.y = y;
+        renderZoneEditor();
+      }
+      render();
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    isPainting = false;
+    dragTarget = null;
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    // keep painting/dragging active if button still held; mouseup on window handles release
+  });
+
+  // ---------------------------------------------------------------------
+  // Start position sidebar inputs
+  // ---------------------------------------------------------------------
+  function renderStartInputs() {
+    if (!mapData) return;
+    startXInput.value = mapData.startPosition.x;
+    startYInput.value = mapData.startPosition.y;
+  }
+  [startXInput, startYInput].forEach(input => {
+    input.addEventListener('change', () => {
+      if (!mapData) return;
+      const x = parseInt(startXInput.value, 10);
+      const y = parseInt(startYInput.value, 10);
+      if (Number.isFinite(x)) mapData.startPosition.x = x;
+      if (Number.isFinite(y)) mapData.startPosition.y = y;
+      render();
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // Zone list & editor
+  // ---------------------------------------------------------------------
+  function renderZoneList() {
+    zoneListEl.innerHTML = '';
+    if (!mapData) return;
+    mapData.interactionZones.forEach(zone => {
+      const item = document.createElement('div');
+      item.className = 'zone-list-item' + (zone.id === selectedZoneId ? ' active' : '');
+      item.innerHTML = '<div class="zid">' + escapeHtml(zone.id) + '</div>' +
+        '<div class="zmeta">' + escapeHtml(zone.type || '') + (zone.variant ? ' / ' + escapeHtml(zone.variant) : '') +
+        ' — (' + zone.x + ', ' + zone.y + ')</div>';
+      item.addEventListener('click', () => {
+        selectedZoneId = zone.id;
+        renderZoneList();
+        renderZoneEditor();
+        render();
+      });
+      zoneListEl.appendChild(item);
+    });
+  }
+
+  function currentZone() {
+    if (!mapData) return null;
+    return mapData.interactionZones.find(z => z.id === selectedZoneId) || null;
+  }
+
+  function renderZoneEditor() {
+    const zone = currentZone();
+    if (!zone) {
+      zoneEditor.style.display = 'none';
+      return;
+    }
+    zoneEditor.style.display = 'block';
+    zEditId.value = zone.id || '';
+    zEditType.value = zone.type || '';
+    zEditVariant.value = zone.variant || '';
+    zEditMessage.value = zone.message || '';
+    zEditX.value = zone.x;
+    zEditY.value = zone.y;
+  }
+
+  function bindZoneField(input, key, isNumber) {
+    input.addEventListener('change', () => {
+      const zone = currentZone();
+      if (!zone) return;
+      let val = input.value;
+      if (isNumber) {
+        val = parseInt(val, 10);
+        if (!Number.isFinite(val)) return;
+      }
+      if (key === 'id') {
+        const oldId = zone.id;
+        zone.id = val;
+        if (selectedZoneId === oldId) selectedZoneId = val;
+      } else {
+        zone[key] = val;
+      }
+      renderZoneList();
+      render();
+    });
+  }
+  bindZoneField(zEditId, 'id', false);
+  bindZoneField(zEditType, 'type', false);
+  bindZoneField(zEditVariant, 'variant', false);
+  bindZoneField(zEditMessage, 'message', false);
+  bindZoneField(zEditX, 'x', true);
+  bindZoneField(zEditY, 'y', true);
+
+  addZoneBtn.addEventListener('click', () => {
+    if (!mapData) return;
+    let n = 1;
+    let id = 'new-zone-1';
+    while (mapData.interactionZones.some(z => z.id === id)) {
+      n++;
+      id = 'new-zone-' + n;
+    }
+    const zone = {
+      id,
+      x: Math.min(1, mapData.width - 1),
+      y: Math.min(1, mapData.height - 1),
+      type: 'note',
+      variant: 'other',
+      message: ''
+    };
+    mapData.interactionZones.push(zone);
+    selectedZoneId = zone.id;
+    renderZoneList();
+    renderZoneEditor();
+    render();
+  });
+
+  deleteZoneBtn.addEventListener('click', () => {
+    const zone = currentZone();
+    if (!zone || !mapData) return;
+    if (!confirm('Delete zone "' + zone.id + '"?')) return;
+    mapData.interactionZones = mapData.interactionZones.filter(z => z !== zone);
+    selectedZoneId = null;
+    renderZoneList();
+    renderZoneEditor();
+    render();
+  });
+
+  // ---------------------------------------------------------------------
+  // Export
+  // ---------------------------------------------------------------------
+  function buildExportObject() {
+    // Preserve exact key order/schema: width, height, tileSize, grid, interactionZones, obstacleTypes, startPosition
+    return {
+      width: mapData.width,
+      height: mapData.height,
+      tileSize: mapData.tileSize,
+      grid: mapData.grid,
+      interactionZones: mapData.interactionZones,
+      obstacleTypes: mapData.obstacleTypes,
+      startPosition: mapData.startPosition
+    };
+  }
+
+  exportDownloadBtn.addEventListener('click', () => {
+    if (!mapData) { alert('No map loaded.'); return; }
+    const json = JSON.stringify(buildExportObject(), null, 2) + '\n';
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'officeMap.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  exportCopyBtn.addEventListener('click', async () => {
+    if (!mapData) { alert('No map loaded.'); return; }
+    const json = JSON.stringify(buildExportObject(), null, 2) + '\n';
+    try {
+      await navigator.clipboard.writeText(json);
+      exportCopyBtn.textContent = 'Copied!';
+      setTimeout(() => { exportCopyBtn.textContent = 'Copy to clipboard'; }, 1200);
+    } catch (err) {
+      alert('Clipboard write failed: ' + err.message);
+    }
+  });
+
+  // ---------------------------------------------------------------------
+  // Utils
+  // ---------------------------------------------------------------------
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  setMode('paint');
+})();
+</script>
+</body>
+</html>
