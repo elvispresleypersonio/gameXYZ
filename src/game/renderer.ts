@@ -65,6 +65,23 @@ export function centerCameraOn(
   );
 }
 
+export function drawTileHighlight(
+  ctx: CanvasRenderingContext2D,
+  camera: Camera,
+  x: number,
+  y: number
+): void {
+  const screenX = (x - camera.x) * TILE_SIZE;
+  const screenY = (y - camera.y) * TILE_SIZE;
+  ctx.save();
+  ctx.fillStyle = "rgba(255, 235, 59, 0.55)";
+  ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
+  ctx.strokeStyle = "rgba(255, 193, 7, 0.9)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(screenX + 1, screenY + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+  ctx.restore();
+}
+
 export function drawMap(
   ctx: CanvasRenderingContext2D,
   map: OfficeMap,

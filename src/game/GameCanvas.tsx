@@ -8,6 +8,7 @@ import {
   TILE_SIZE,
   centerCameraOn,
   drawMap,
+  drawTileHighlight,
   type OfficeMap,
 } from "@/game/renderer";
 import {
@@ -45,6 +46,15 @@ interface PlayerState {
   direction: Direction;
 }
 
+interface FlashTile {
+  x: number;
+  y: number;
+  visible: boolean;
+}
+
+const FLASH_INTERVAL_MS = 150;
+const FLASH_TOGGLE_COUNT = 5; // on -> off -> on -> off -> on -> off = 3 flashes
+
 export default function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [player, setPlayer] = useState<PlayerState>({
@@ -56,11 +66,45 @@ export default function GameCanvas() {
   const [npcSprites, setNpcSprites] = useState<NpcSpriteImages>({});
   const [dialogMessage, setDialogMessage] = useState<string | null>(null);
   const [assetsLoaded, setAssetsLoaded] = useState(false);
+  const [flashTile, setFlashTile] = useState<FlashTile | null>(null);
   const playerRef = useRef(player);
+  const dialogRef = useRef(dialogMessage);
+  const flashTimeoutsRef = useRef<number[]>([]);
 
   useEffect(() => {
     playerRef.current = player;
   }, [player]);
+
+  useEffect(() => {
+    dialogRef.current = dialogMessage;
+  }, [dialogMessage]);
+
+  useEffect(() => {
+    return () => {
+      flashTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
+    };
+  }, []);
+
+  const triggerFlash = (x: number, y: number) => {
+    flashTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
+    flashTimeoutsRef.current = [];
+
+    let visible = true;
+    setFlashTile({ x, y, visible });
+
+    for (let i = 1; i <= FLASH_TOGGLE_COUNT; i++) {
+      const id = window.setTimeout(() => {
+        visible = !visible;
+        setFlashTile({ x, y, visible });
+      }, FLASH_INTERVAL_MS * i);
+      flashTimeoutsRef.current.push(id);
+    }
+
+    const clearId = window.setTimeout(() => {
+      setFlashTile(null);
+    }, FLASH_INTERVAL_MS * (FLASH_TOGGLE_COUNT + 1));
+    flashTimeoutsRef.current.push(clearId);
+  };
 
   useEffect(() => {
     Promise.all([loadSprites(), loadNpcSprites()]).then(
@@ -76,14 +120,16 @@ export default function GameCanvas() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.code === "Space") {
         event.preventDefault();
-        setDialogMessage((prev) => {
-          if (prev) return null;
-          const { x, y } = playerRef.current;
-          const zone = findAdjacentZone(map, x, y);
-          if (!zone) return null;
-          playInteractionDing();
-          return zone.message;
-        });
+        if (dialogRef.current) {
+          setDialogMessage(null);
+          return;
+        }
+        const { x, y } = playerRef.current;
+        const zone = findAdjacentZone(map, x, y);
+        if (!zone) return;
+        playInteractionDing();
+        setDialogMessage(zone.message);
+        triggerFlash(zone.x, zone.y);
         return;
       }
 
@@ -114,6 +160,10 @@ export default function GameCanvas() {
     const camera = centerCameraOn(player.x, player.y, map);
     drawMap(ctx, map, camera);
 
+    if (flashTile?.visible) {
+      drawTileHighlight(ctx, camera, flashTile.x, flashTile.y);
+    }
+
     for (const npc of npcZones) {
       drawAnchoredSprite(
         ctx,
@@ -132,7 +182,7 @@ export default function GameCanvas() {
       player.y - camera.y,
       TILE_SIZE
     );
-  }, [player, sprites, npcSprites]);
+  }, [player, sprites, npcSprites, flashTile]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
