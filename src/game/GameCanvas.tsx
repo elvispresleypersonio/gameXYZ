@@ -106,6 +106,17 @@ export default function GameCanvas() {
     flashTimeoutsRef.current.push(clearId);
   };
 
+  const lastAdjacentZoneIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const zone = findAdjacentZone(map, player.x, player.y);
+    const zoneId = zone?.id ?? null;
+    if (zone && zoneId !== lastAdjacentZoneIdRef.current) {
+      triggerFlash(zone.x, zone.y);
+    }
+    lastAdjacentZoneIdRef.current = zoneId;
+  }, [player]);
+
   useEffect(() => {
     Promise.all([loadSprites(), loadNpcSprites()]).then(
       ([loadedSprites, loadedNpcSprites]) => {
@@ -129,7 +140,6 @@ export default function GameCanvas() {
         if (!zone) return;
         playInteractionDing();
         setDialogMessage(zone.message);
-        triggerFlash(zone.x, zone.y);
         return;
       }
 
